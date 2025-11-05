@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz do Professor Miaunel</title>
+    <!-- Carrega o Tailwind CSS para estilização moderna e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define a fonte Inter como principal */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            /* NOVO FUNDO - Suave e temático */
+            background-color: #fef3c7; /* Amarelo pálido para um toque felino */
+            background-image: radial-gradient(#fff, #fef3c7);
+            min-height: 100vh; /* Garante que o fundo cubra a tela toda */
+            display: flex;
+            flex-direction: column; /* Permite que o link e o quiz se alinhem verticalmente */
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        /* Estilo para a área de diálogo do gato */
+        .miaunel-dialogue {
+            background-color: #fefcbf; /* Cor amarela suave */
+            border-left: 5px solid #facc15; /* Borda amarela forte */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        /* Estilo para as opções de resposta */
+        .option-button {
+            transition: all 0.2s;
+        }
+        .option-button:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        /* Estilos de feedback */
+        .correct-answer { background-color: #34d399 !important; border-color: #059669 !important; color: white !important; }
+        .wrong-answer { background-color: #f87171 !important; border-color: #dc2626 !important; color: white !important; }
+        .disabled { pointer-events: none; opacity: 0.8; }
+        .bounce-animation {
+            animation: bounce 0.8s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        /* Ajuste responsivo para a largura do container principal */
+        @media (max-width: 640px) {
+            .main-quiz-container {
+                max-width: 100%;
+                margin: 0.5rem;
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-cat': '#374151', /* Cinza escuro */
+                        'secondary-cat': '#facc15', /* Amarelo Miaunel */
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Container Principal do Quiz (bg-amber-50 adicionado para um tom mais cremoso) -->
+    <div class="main-quiz-container bg-amber-50 rounded-xl shadow-2xl p-6 w-full max-w-2xl">
+        <h1 class="text-3xl font-extrabold text-center text-primary-cat mb-6">
+            O Quiz do Professor Miaunel
+        </h1>
+
+        <!-- Score e Status -->
+        <div class="flex justify-between text-lg font-semibold mb-4 border-b pb-2">
+            <span id="question-status" class="text-gray-600">Pergunta 1/10</span>
+            <span id="score" class="text-secondary-cat">Pontos: 0</span>
+        </div>
+
+        <!-- Área do Professor Miaunel e Diálogo -->
+        <div class="flex items-start mb-6 p-4 rounded-lg miaunel-dialogue">
+            <div id="miaunel-emoji" class="text-6xl mr-4 bounce-animation">
+                🐈‍⬛
+            </div>
+            <div>
+                <p class="font-bold text-lg text-primary-cat">Professor Miaunel:</p>
+                <p id="miaunel-dialogue" class="text-gray-800 italic">Preparado para testar seus conhecimentos do Ensino Fundamental? Não me decepcione, humano!</p>
+            </div>
+        </div>
+
+        <!-- Área da Pergunta -->
+        <div class="mb-6">
+            <p id="current-question" class="text-xl font-medium text-gray-800">
+                Aguardando carregamento...
+            </p>
+            <p id="materia-tag" class="text-sm text-gray-500 mt-2 p-1 bg-gray-200 inline-block rounded-full px-3">
+                
+            </p>
+        </div>
+
+        <!-- Área das Opções de Resposta -->
+        <div id="options-container" class="space-y-3">
+            <!-- Os botões de resposta serão injetados aqui pelo JavaScript -->
+        </div>
+
+        <!-- Botão de Próxima Pergunta (Escondido inicialmente) -->
+        <button id="next-button" class="mt-6 w-full py-3 bg-secondary-cat text-primary-cat font-bold rounded-lg shadow-md hover:bg-yellow-500 disabled:opacity-50 hidden" onclick="loadNextQuestion()">
+            Próxima Pergunta
+        </button>
+    </div>
+
+    <!-- NOVO: Seção de Link para o Jogo -->
+    <div class="mt-4 p-4 w-full max-w-2xl bg-white rounded-lg shadow-md text-center border-t border-gray-200">
+        <p class="text-sm text-gray-700 mb-2 font-semibold">Compartilhe o Quiz do Professor Miaunel!</p>
+        <a href="#" onclick="copyLink(event)" class="text-sm text-blue-600 hover:text-blue-800 font-mono bg-gray-100 p-2 rounded-lg inline-block break-all transition duration-150 ease-in-out hover:bg-gray-200">
+            https://quiz-miaunel.com/meu-link-exclusivo
+        </a>
+        <button id="copy-button" class="mt-2 text-xs py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition" onclick="copyLink()">Copiar Link</button>
+        <p id="copy-message" class="text-xs mt-2 text-green-600 hidden">Link copiado!</p>
+    </div>
+    <!-- FIM NOVO: Seção de Link para o Jogo -->
+
+    <script>
+        // Função para copiar o link para a área de transferência
+        function copyLink(event) {
+            // Previne a navegação se for um clique no âncora
+            if (event) event.preventDefault();
+
+            const placeholderText = "https://quiz-miaunel.com/meu-link-exclusivo";
+            const copyMessage = document.getElementById('copy-message');
+
+            try {
+                // Tenta usar o comando execCommand para garantir compatibilidade em iframes
+                const input = document.createElement('textarea');
+                input.value = placeholderText;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+
+                copyMessage.textContent = 'Link copiado!';
+                copyMessage.classList.remove('hidden');
+                setTimeout(() => copyMessage.classList.add('hidden'), 2000);
+            } catch (err) {
+                console.error('Falha ao copiar:', err);
+                copyMessage.textContent = 'Falha ao copiar o link. Por favor, copie manualmente.';
+                copyMessage.classList.remove('hidden');
+                setTimeout(() => copyMessage.classList.add('hidden'), 3000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Define o Professor Miaunel como a fonte de todas as lições!
+            const catEmoji = "🐈‍⬛";
+            const catHappyEmoji = "😻";
+            const catAngryEmoji = "😾";
+
+            // Dados do Quiz (Ensino Fundamental)
+            const quizData = [
+                {
+                    q: "Miaunel pergunta: Se Kratos, o deus da guerra, tinha 45 orbs vermelhos e gastou 18 orbs para aprimorar uma arma, quantos orbs sobraram para ele? Mostre que sabe subtrair!",
+                    materia: "Matemática",
+                    options: ["37 orbs", "27 orbs", "25 orbs", "33 orbs"],
+                    correct: "27 orbs",
+                    miaunel_intro: "Miau! Vamos começar com um pouco de cálculo de orbs. Não se confunda!",
+                    miaunel_success: "Exato! Cálculo de orbs aprovado. Você é mais esperto do que parece, humano. (45 - 18 = 27)",
+                    miaunel_fail: "Errado! Você perdeu 18 orbs. Preste mais atenção na subtração. (45 - 18 = 27)",
+                },
+                {
+                    q: "Professor Miaunel quer saber: Qual das palavras abaixo é um substantivo próprio?",
+                    materia: "Português",
+                    options: ["cidade", "gato", "Miaunel", "brinquedo"],
+                    correct: "Miaunel",
+                    miaunel_intro: "Na ponta da língua! Me diga, qual palavra merece uma letra maiúscula?",
+                    miaunel_success: "Claro! 'Miaunel' é único! Substantivo próprio na veia. Continue assim!",
+                    miaunel_fail: "Essa era fácil! Substantivos próprios, como 'Miaunel', nomeiam seres específicos e começam com letra maiúscula.",
+                },
+                {
+                    q: "Na aula de Ciências, Miaunel explica: A água que ferve em uma panela e sobe em forma de vapor está passando por qual processo?",
+                    materia: "Ciências",
+                    options: ["Fusão", "Vaporização", "Condensação", "Sublimação"],
+                    correct: "Vaporização",
+                    miaunel_intro: "Mude de estado! Como a água se transforma em vapor ao ferver?",
+                    miaunel_success: "Perfeito! Líquido para gasoso: Vaporização. Você está aquecendo!",
+                    miaunel_fail: "Que vergonha! Se a água ferve, ela está evaporando, ou seja, Vaporização. Volte para a cozinha, humano!",
+                },
+                {
+                    q: "Em História, Professor Miaunel pergunta: Qual navegador português é historicamente creditado pela chegada ao Brasil em 1500?",
+                    materia: "História",
+                    options: ["Vasco da Gama", "Cristóvão Colombo", "Pedro Álvares Cabral", "Fernão de Magalhães"],
+                    correct: "Pedro Álvares Cabral",
+                    miaunel_intro: "Voltemos às caravelas! Quem era o capitão português em 1500?",
+                    miaunel_success: "Acertou na História! Pedro Álvares Cabral no comando. Você tem boa memória.",
+                    miaunel_fail: "Errou feio! O grande navegador foi Pedro Álvares Cabral. Não confunda as datas e bandeiras!",
+                },
+                {
+                    q: "O Miaunel tem 7 caixas com 9 sachês de ração em cada uma. Quantos sachês ele tem no total?",
+                    materia: "Matemática",
+                    options: ["16 sachês", "56 sachês", "63 sachês", "79 sachês"],
+                    correct: "63 sachês",
+                    miaunel_intro: "Meu almoço depende de você! Calcule quantos sachês eu tenho. Pista: é multiplicação!",
+                    miaunel_success: "Fantástico! 7 x 9 = 63. Meu estômago agradece sua inteligência!",
+                    miaunel_fail: "Oh, não! São 63 sachês (7 x 9). Eu ficarei faminto se você errar a tabuada!",
+                },
+                {
+                    q: "Professor Miaunel está estudando a coluna vertebral. Qual animal pertence ao grupo dos vertebrados?",
+                    materia: "Ciências",
+                    options: ["Aranha", "Minhoca", "Sapo", "Caracol"],
+                    correct: "Sapo",
+                    miaunel_intro: "Quem tem ossos? Qual desses animais possui coluna vertebral?",
+                    miaunel_success: "Correto! O sapo é um anfíbio, portanto, um vertebrado. Ótima observação!",
+                    miaunel_fail: "O sapo é o único vertebrado dessa lista! Os outros são invertebrados. Não confunda artrópodes com anfíbios!",
+                },
+                {
+                    q: "Na aula de Português, Miaunel analisa a frase: 'Eu **comi** a ração inteira'. O verbo 'comer' está conjugado em qual tempo verbal?",
+                    materia: "Português",
+                    options: ["Futuro", "Presente", "Pretérito", "Infinitivo"],
+                    correct: "Pretérito",
+                    miaunel_intro: "Tempo verbal! A ação de comer já terminou. Qual tempo é esse?",
+                    miaunel_success: "Isso é passado, ou melhor, Pretérito! Você domina os tempos verbais.",
+                    miaunel_fail: "O verbo 'comi' é passado, ou seja, Pretérito! Indica uma ação já concluída. Estude mais a conjugação.",
+                },
+                {
+                    q: "Em Geografia, Professor Miaunel está olhando o mapa. Se você está caminhando em direção ao Norte, qual ponto cardeal está, obrigatoriamente, nas suas costas?",
+                    materia: "Geografia",
+                    options: ["Leste", "Oeste", "Sul", "Nordeste"],
+                    correct: "Sul",
+                    miaunel_intro: "Orientação espacial! Se vou para o Norte, o que fica atrás de mim?",
+                    miaunel_success: "Excelente! O Sul é o oposto do Norte. Você sabe se localizar no mapa!",
+                    miaunel_fail: "Que desorientação! Se o Norte está na frente, o Sul está nas costas! Estude os pontos cardeais.",
+                },
+                {
+                    q: "As plantas realizam a fotossíntese. Qual gás elas absorvem da atmosfera nesse processo?",
+                    materia: "Ciências",
+                    options: ["Oxigênio", "Hidrogênio", "Dióxido de Carbono", "Nitrogênio"],
+                    correct: "Dióxido de Carbono",
+                    miaunel_intro: "Energia solar! Qual gás as plantas 'respiram' para fazer seu alimento?",
+                    miaunel_success: "Fantástico! O Dióxido de Carbono (CO2) é o gás certo. Você entende de fotossíntese!",
+                    miaunel_fail: "Errado! Elas absorvem o Dióxido de Carbono (CO2) e LIBERAM Oxigênio. Lição de casa: cuidar das plantas!",
+                },
+                {
+                    q: "A Mamãe Miaunel dividiu 50 bolinhas de lã igualmente entre seus 5 filhotes. Quantas bolinhas de lã cada filhote recebeu?",
+                    materia: "Matemática",
+                    options: ["5 bolinhas", "10 bolinhas", "15 bolinhas", "250 bolinhas"],
+                    correct: "10 bolinhas",
+                    miaunel_intro: "Hora da divisão justa! Se for igual, é divisão. Qual o resultado de 50 / 5?",
+                    miaunel_success: "Brilhante! 50 / 5 = 10. Todos os filhotes ficam felizes e você ganha pontos!",
+                    miaunel_fail: "Não foi justo! O correto é 10 bolinhas por filhote (50 / 5). Estude a divisão, pelos de Gato!",
+                }
+            ];
+
+            let currentQuestionIndex = 0;
+            let score = 0;
+            let gameFinished = false;
+
+            const questionElement = document.getElementById('current-question');
+            const materiaTag = document.getElementById('materia-tag');
+            const optionsContainer = document.getElementById('options-container');
+            const scoreElement = document.getElementById('score');
+            const statusElement = document.getElementById('question-status');
+            const miaunelDialogue = document.getElementById('miaunel-dialogue');
+            const miaunelEmoji = document.getElementById('miaunel-emoji');
+            const nextButton = document.getElementById('next-button');
+
+            // Função principal para carregar a pergunta
+            function loadQuestion() {
+                if (currentQuestionIndex >= quizData.length) {
+                    finishGame();
+                    return;
+                }
+
+                const currentQuestion = quizData[currentQuestionIndex];
+                
+                // Atualiza a interface
+                statusElement.textContent = `Pergunta ${currentQuestionIndex + 1}/${quizData.length}`;
+                scoreElement.textContent = `Pontos: ${score}`;
+                questionElement.textContent = currentQuestion.q;
+                materiaTag.textContent = currentQuestion.materia;
+                miaunelDialogue.textContent = currentQuestion.miaunel_intro;
+                miaunelEmoji.textContent = catEmoji; // Emoji padrão
+                miaunelEmoji.classList.add('bounce-animation');
+                nextButton.classList.add('hidden');
+                optionsContainer.classList.remove('disabled');
+                
+                // Cria os botões de opção
+                optionsContainer.innerHTML = '';
+                currentQuestion.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.className = 'option-button w-full text-left p-3 border-2 border-gray-300 rounded-lg text-gray-800 font-medium bg-white hover:bg-gray-50';
+                    button.onclick = () => checkAnswer(option, currentQuestion);
+                    optionsContainer.appendChild(button);
+                });
+            }
+
+            // Função para verificar a resposta
+            function checkAnswer(selectedOption, question) {
+                if (gameFinished) return;
+
+                optionsContainer.classList.add('disabled'); // Desabilita mais cliques
+                miaunelEmoji.classList.remove('bounce-animation');
+                nextButton.classList.remove('hidden');
+
+                const optionButtons = optionsContainer.querySelectorAll('.option-button');
+                let isCorrect = false;
+
+                optionButtons.forEach(button => {
+                    if (button.textContent === question.correct) {
+                        button.classList.add('correct-answer');
+                    }
+                    if (button.textContent === selectedOption) {
+                        if (selectedOption === question.correct) {
+                            isCorrect = true;
+                        } else {
+                            button.classList.add('wrong-answer');
+                        }
+                    }
+                });
+
+                if (isCorrect) {
+                    score += 10;
+                    miaunelDialogue.textContent = question.miaunel_success;
+                    miaunelEmoji.textContent = catHappyEmoji;
+                } else {
+                    miaunelDialogue.textContent = question.miaunel_fail;
+                    miaunelEmoji.textContent = catAngryEmoji;
+                }
+                scoreElement.textContent = `Pontos: ${score}`;
+            }
+
+            // Função para carregar a próxima pergunta
+            function loadNextQuestion() {
+                if (currentQuestionIndex < quizData.length) {
+                    currentQuestionIndex++;
+                    loadQuestion();
+                }
+            }
+
+            // Função de finalização do jogo
+            function finishGame() {
+                gameFinished = true;
+                optionsContainer.innerHTML = '';
+                nextButton.classList.add('hidden');
+
+                let finalMessage = "";
+                let finalEmoji = catEmoji;
+
+                if (score === 100) {
+                    finalMessage = `Uau! Nota máxima! 💯 Você é o MESTRE do Ensino Fundamental. O Professor Miaunel está orgulhoso (e impressionado)!`;
+                    finalEmoji = catHappyEmoji;
+                } else if (score >= 70) {
+                    finalMessage = `Bom trabalho! 💪 Sua pontuação de ${score} mostra que você tem um ótimo domínio dos assuntos.`;
+                    finalEmoji = catEmoji;
+                } else {
+                    finalMessage = `Precisa estudar mais! 😿 Sua pontuação de ${score} não me agrada. Volte aos seus livros e tente novamente. Miau!`;
+                    finalEmoji = catAngryEmoji;
+                }
+
+                questionElement.textContent = `FIM DO QUIZ! Sua pontuação final foi de ${score} pontos.`;
+                materiaTag.textContent = 'Resultado Final';
+                miaunelDialogue.textContent = finalMessage;
+                miaunelEmoji.textContent = finalEmoji;
+                miaunelEmoji.classList.remove('bounce-animation');
+            }
+
+            // Inicia o jogo
+            loadQuestion();
+            window.loadNextQuestion = loadNextQuestion; // Exporta para o botão HTML
+            window.copyLink = copyLink; // Exporta a função de cópia
+        });
+    </script>
+
+</body>
+</html>
